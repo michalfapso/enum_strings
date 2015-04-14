@@ -12,6 +12,7 @@ class EnumConversions;
 
 template <typename Enum>
 struct EnumManager {
+	typedef std::vector<std::pair<Enum, std::string>> EnumToStringVector;
 	static const int ENUM_NOT_FOUND = -1;
     static std::string toString (const Enum en);
     static Enum toEnum (const std::string& str);
@@ -21,6 +22,26 @@ struct EnumManager {
 private:
     static std::map<Enum, std::string> initializeEnumToStringMap();
     static std::map<std::string, Enum> initializeStringToEnumMap();
+protected:
+	static std::string trim(std::string const& str)
+	{
+		if(str.empty())
+			return str;
+
+		std::size_t first = str.find_first_not_of(' ');
+		std::size_t last  = str.find_last_not_of(' ');
+		return str.substr(first, last-first+1);
+	}
+	static EnumToStringVector splitStringToVector(const std::string& str) {
+		const char delim = ',';
+		EnumToStringVector tokens;
+		std::stringstream ss(str);
+		std::string item;
+		while (std::getline(ss, item, delim)) {
+			tokens.push_back(std::make_pair(static_cast<Enum>(tokens.size()), trim(item)));
+		}
+		return tokens;
+	}
 };
 
 template <typename Enum>
@@ -29,8 +50,9 @@ const std::map<Enum, std::string> EnumManager<Enum>::enumToStringMap =  EnumMana
 template<typename Enum>
 std::map<Enum, std::string> EnumManager<Enum>::initializeEnumToStringMap() {
     std::map<Enum, std::string> m;
-    for (const auto& x: EnumConversions<Enum>::enumToStringVector)
-        m[x.first] = x.second;
+    //for (const auto& x: EnumConversions<Enum>::enumToStringVector)
+	for (const auto& x: splitStringToVector(EnumConversions<Enum>::enumToStringStr))
+		m[x.first] = x.second;
     return m;
 }
 
@@ -40,8 +62,9 @@ const std::map<std::string, Enum> EnumManager<Enum>::stringToEnumMap =  EnumMana
 template<typename Enum>
 std::map<std::string, Enum> EnumManager<Enum>::initializeStringToEnumMap() {
     std::map<std::string, Enum> m;
-    for (const auto& x: EnumConversions<Enum>::enumToStringVector)
-        m[x.second] = x.first;
+    //for (const auto& x: EnumConversions<Enum>::enumToStringVector)
+	for (const auto& x: splitStringToVector(EnumConversions<Enum>::enumToStringStr))
+		m[x.second] = x.first;
     return m;
 }
 
@@ -67,33 +90,10 @@ int EnumManager<Enum>::size() {
 }
 
 template <typename Enum>
-class EnumConversions : public EnumManager<Enum> {
-	private:
-	    EnumConversions();  // to prevent instantiation
-
-		static std::string trim(std::string const& str)
-		{
-			if(str.empty())
-				return str;
-
-			std::size_t first = str.find_first_not_of(' ');
-			std::size_t last  = str.find_last_not_of(' ');
-			return str.substr(first, last-first+1);
-		}
-	public:
-		typedef std::vector<std::pair<Enum, std::string>> Vector;
-	    static const Vector enumToStringVector;
-
-		static Vector splitStringToVector(const std::string& str) {
-			const char delim = ',';
-			Vector tokens;
-			std::stringstream ss(str);
-			std::string item;
-			while (std::getline(ss, item, delim)) {
-				tokens.push_back(std::make_pair(static_cast<Enum>(tokens.size()), trim(item)));
-			}
-			return tokens;
-		}
+struct EnumConversions //: public EnumManager<Enum>
+{
+	//static constexpr typename EnumManager<Enum>::EnumToStringVector enumToStringVector = {};
+	static constexpr char enumToStringStr[] = "";
 };
 
 
@@ -105,7 +105,7 @@ struct enum_serializable : std::false_type
 template <typename Enum>
 typename std::enable_if<enum_serializable<Enum>::value, std::ostream&>::type operator<<(std::ostream& os, Enum e)
 {
-    return os << EnumConversions<Enum>::toString(e);
+    return os << EnumManager<Enum>::toString(e);
 }
 
 template <typename Enum>
@@ -113,7 +113,7 @@ typename std::enable_if<enum_serializable<Enum>::value, std::istream&>::type ope
 {
     std::string buf;
     is >> buf;
-	e = EnumConversions<Enum>::toEnum(buf);
+	e = EnumManager<Enum>::toEnum(buf);
     return is;
 }
 

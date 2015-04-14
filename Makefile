@@ -1,5 +1,11 @@
 CXXFLAGS += -std=c++11
 
-main: main.cpp enum_conversions.h enum_conversions_macro.h
-	$(CXX) $(CXXFLAGS) -o $@ $<
+main: main.o a.o
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+main.o: main.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+a.o: a.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
